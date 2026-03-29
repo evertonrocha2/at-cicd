@@ -45,6 +45,30 @@ jobs:
       - name: Warning de exemplo
         run: echo "::warning::Lembre-se de configurar os secrets antes de rodar o deploy"
 
+      - name: Diagnostico e sugestoes de melhoria
+        run: |
+          echo "== Diagnostico automatizado =="
+          echo ""
+
+          if [ ! -f ".dockerignore" ]; then
+            echo "::warning::.dockerignore nao encontrado - recomendado criar para reduzir o tamanho da imagem Docker"
+          fi
+
+          if [ ! -f "docker-compose.yml" ]; then
+            echo "::warning::docker-compose.yml nao encontrado - considere criar para facilitar o desenvolvimento local"
+          fi
+
+          if ! grep -q "spring.profiles" src/main/resources/application.yaml 2>/dev/null; then
+            echo "::warning::Nenhum profile Spring detectado - considere usar profiles (dev, staging, prod) para separar configuracoes"
+          fi
+
+          echo ""
+          echo "Sugestoes de correcao para falhas comuns:"
+          echo "  1. Se o build falhar: verifique se o pom.xml esta correto e rode 'mvnw dependency:resolve'"
+          echo "  2. Se os testes falharem: confirme que o banco PostgreSQL esta acessivel e o schema foi aplicado"
+          echo "  3. Se o deploy falhar: confira os secrets e variables em Settings > Secrets and variables"
+          echo "  4. Se a imagem Docker nao subir: verifique o login no Docker Hub com 'docker login'"
+
       - name: Gerar job summary
         run: |
           echo "## Resultado do Diagnostico" >> $GITHUB_STEP_SUMMARY
@@ -57,12 +81,17 @@ jobs:
           echo "| pom.xml | Verificado |" >> $GITHUB_STEP_SUMMARY
           echo "| Dockerfile | Verificado |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Sugestoes" >> $GITHUB_STEP_SUMMARY
+          echo "- Adicionar .dockerignore para otimizar build" >> $GITHUB_STEP_SUMMARY
+          echo "- Considerar profiles Spring para ambientes diferentes" >> $GITHUB_STEP_SUMMARY
+          echo "- Manter secrets e variables atualizados" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "> Diagnostico finalizado com sucesso" >> $GITHUB_STEP_SUMMARY
 
-      - name: Diagnostico automatizado de falhas
+      - name: Diagnostico em caso de falha
         if: failure()
         run: |
-          echo "::error::Pipeline falhou - iniciando diagnostico automatico"
+          echo "::error::Pipeline falhou - diagnostico automatico"
           echo ""
           echo "Possiveis causas:"
           echo "  1. Arquivo pom.xml ausente ou corrompido"
