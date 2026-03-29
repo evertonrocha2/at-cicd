@@ -1,0 +1,75 @@
+name: Debug Monitor
+
+on: push
+
+env:
+  ACTIONS_STEP_DEBUG: true
+
+jobs:
+  diagnostics:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Debug info
+        run: |
+          echo "::debug::Iniciando diagnostico do pipeline"
+          echo "Runner OS: $RUNNER_OS"
+          echo "Runner Arch: $RUNNER_ARCH"
+          echo "Workspace: $GITHUB_WORKSPACE"
+
+      - name: Verificar arquivos do projeto
+        run: |
+          if [ -f "pom.xml" ]; then
+            echo "pom.xml encontrado"
+          else
+            echo "::error file=pom.xml::pom.xml nao encontrado no repositorio"
+          fi
+
+          if [ -f "Dockerfile" ]; then
+            echo "Dockerfile encontrado"
+          else
+            echo "::warning file=Dockerfile::Dockerfile nao encontrado - build de imagem pode falhar"
+          fi
+
+      - name: Verificar estrutura
+        run: |
+          if [ ! -d "src" ]; then
+            echo "::error::Diretorio src nao encontrado - projeto pode estar incompleto"
+            echo "Sugestao: verifique se o checkout foi feito corretamente"
+          else
+            echo "Estrutura do projeto OK"
+          fi
+
+      - name: Warning de exemplo
+        run: echo "::warning::Lembre-se de configurar os secrets antes de rodar o deploy"
+
+      - name: Gerar job summary
+        run: |
+          echo "## Resultado do Diagnostico" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Runner | $RUNNER_OS ($RUNNER_ARCH) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | $GITHUB_REF_NAME |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | $GITHUB_SHA |" >> $GITHUB_STEP_SUMMARY
+          echo "| pom.xml | Verificado |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dockerfile | Verificado |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> Diagnostico finalizado com sucesso" >> $GITHUB_STEP_SUMMARY
+
+      - name: Diagnostico automatizado de falhas
+        if: failure()
+        run: |
+          echo "::error::Pipeline falhou - iniciando diagnostico automatico"
+          echo ""
+          echo "Possiveis causas:"
+          echo "  1. Arquivo pom.xml ausente ou corrompido"
+          echo "  2. Secrets nao configurados no repositorio"
+          echo "  3. Dependencias nao resolvidas"
+          echo ""
+          echo "Sugestoes de correcao:"
+          echo "  - Verifique se o repositorio esta completo"
+          echo "  - Confira os secrets em Settings > Secrets"
+          echo "  - Rode 'mvnw dependency:resolve' localmente"
